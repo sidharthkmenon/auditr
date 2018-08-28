@@ -85,7 +85,7 @@ def findInfo(courseNum, browser, dict):
     # Semester
     dict['Semester'].append(browser.find_element_by_class_name('isSCL_RBT').text)
     # description
-    dict('Description').append(browser.find_element_by_class_name('isSCL_RBD').text)
+    dict['Description'].append(browser.find_element_by_class_name('isSCL_RBD').text)
      # Time
     dict['Time'].append(browser.find_element_by_class_name('isSCL_RBSET').text)
     # location
