@@ -6,9 +6,9 @@ df = pd.read_excel('/Users/sidharthmenon/Desktop/Summer 2018/Harvard Class List.
 df = df.rename(index=str, columns={"Full Title ": "Full Title"})
 df = df.rename(index=str, columns={"Interesting Classes ": "Interesting Classes"})
 df = df.rename(index=str, columns={"Divisional Distribution ": "Divisional Distribution"})
-df[['Title', 'Course #', 'Useless']] = df['Full Title'].str.split(" \(", expand=True)
+df[['Title', 'Sep', 'Course #']] = df['Full Title'].str.rpartition(" (",  expand=True)
 del df['Full Title']
-del df['Useless']
+del df['Sep']
 newColRef = df['Title']
 df.drop(labels='Title', axis=1, inplace=True)
 df.insert(1, 'Title', newColRef)
