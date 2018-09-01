@@ -11,6 +11,8 @@ import random
 df = loadPandasDf()
 from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentException
 from collections import OrderedDict
+from pandas import Series
+
 
 browser = webdriver.Chrome()
 browser.quit()
@@ -90,7 +92,7 @@ x
 
 def retry(courseNum, browser, dict):
     browser.refresh()
-    findInfo(courseNum, browser, dict)
+    return findInfo(courseNum, browser, dict)
 
 def findInfo(courseNum, browser, dict):
     browser.get('https://portal.my.harvard.edu/psp/hrvihprd/EMPLOYEE/EMPL/h/?tab=HU_CLASS_SEARCH')
@@ -109,7 +111,7 @@ def findInfo(courseNum, browser, dict):
         return retry(courseNum, browser, dict)
     except TimeoutException:
         print('timed out -- bad courseNum: {0}'.format(courseNum))
-        return(-1)
+        return False
     except:
         lightBox = WebDriverWait(browser, 20).until(EC.element_to_be_clickable((By.XPATH, "//*[contains(concat(' ', @class, ' '), ' isSCL_LBSecComp ')]")))
         lightBox.click()
@@ -118,7 +120,7 @@ def findInfo(courseNum, browser, dict):
         # Prof
         dict['Prof'].append(browser.find_element_by_class_name('isSCL_RBI').text)
     except:
-        return(-1)
+        return False
     # FAS
     dict['Prof'].append(browser.find_element_by_class_name('isSCL_RBDP').text)
     # Semester
@@ -147,7 +149,7 @@ def findInfo(courseNum, browser, dict):
         dict['Q Guide Score'].append([x.text for x in qGuide if len(x.text) > 0][0])
     except:
         dict['Q Guide Score'].append('-1')
-    return(0)
+    return True
 
 def boot():
     browser = webdriver.Chrome()
@@ -167,31 +169,76 @@ def boot():
 # New Browser
 
 
-
 # initialize
-
-
 
 browser = boot()
 
-addnRows = {'Description': [], 'Time':[], 'Location':[], 'Google Maps':[],
-            'Day of Week':[], 'Q Guide Score':[], 'Prof': [], 'Semester':[]}
+addnRows = {'Course #': [], 'RetVal': [], 'Description': [], 'Time':[],
+            'Location':[], 'Google Maps':[], 'Day of Week':[], 'Q Guide Score':[],
+            'Prof': [], 'Semester':[]}
 
 # df.index[df['Course #'] == '203876'].tolist()
 # df['Title'][75]
 
 rec = {'Bad CourseNums': []}
+
 for courseNum in df['Course #']:
     time.sleep(2 + random.uniform(0.2, 3.5))
-    if findInfo(courseNum, browser, addnRows) == -1:
-        rec['Bad CourseNums'].append(courseNum)
-display(rec)
-display(addnRows)
+    addnRows['Course #'].append(courseNum)
+    addnRows['RetVal'].append(findInfo(courseNum, browser, addnRows))
 
-len(addnRows['Semester'])
 
+
+checkLen = [len(addnRows[id]) for id in addnRows.keys()]
+display(checkLen)
 addnRows['Prof'] = [x for x in addnRows['Prof'] if x != 'FAS']
-
-display(addnRows)
-
+checkLen = [len(addnRows[id]) for id in addnRows.keys()]
+display(checkLen)
+len([x for x in addnRows['RetVal'] if x == False])
+len([x for x in addnRows['RetVal'] if x == True])
+len(addnRows['RetVal'])
 browser.quit()
+
+len(df['Course #'])
+
+addnRows['Course #'][210]
+# assert (False not in [df['Course #'][i] == addnRows['Course #'][i] for i in dud_indices])
+
+dud_indices = [i for i, e in enumerate(addnRows['RetVal']) if e == False]
+display(dud_indices)
+
+df.index[df['Course #'] == '207829'].tolist()
+
+
+dud_indices = [df.index[df['Course #'] == addnRows['Course #'][i]].tolist()[0] for i in dud_indices]
+display(dud_indices)
+
+# remove 'dud' classes no longer offered
+
+dud_courses = [df.at[i, 'Course #'] for i in dud_indices]
+dud_courses
+[df.drop(df.index[df['Course #'] == courseNum], inplace=True) for courseNum in dud_courses]
+
+display(df)
+
+courseStore = addnRows.pop('Course #', None)
+retValStore = addnRows.pop('RetVal', None)
+
+
+store = df.copy()
+df = store.copy()
+
+display(pd.DataFrame(addnRows))
+
+df = df.assign(googleMaps=addnRows['Google Maps'])
+df = df.assign(location=addnRows['Location'])
+df = df.assign(description=addnRows['Description'])
+df = df.assign(days=addnRows['Day of Week'])
+df = df.assign(q_guide2=addnRows['Q Guide Score'])
+df = df.assign(date2=addnRows['Semester'])
+df = df.assign(time=addnRows['Time'])
+display(df)
+
+df.to_pickle('./class_data')
+df = pd.read_pickle('./class_data')
+display(df)
